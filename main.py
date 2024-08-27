@@ -7,13 +7,17 @@ import time
 
 
 def main(page: ft.Page):
+
     page.title = "ZermeloPython"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     key = ft.TextField(label="Zermelo API Key", icon="key")
     school_url="https://citadelcollege.zportal.nl/api"
 
 
+
     if open("token.txt", 'r').read(1):
+        end_unix = ""
+        start_unix = ""
         url = "{}/v3/users/~me".format(school_url)
         params = {"access_token": open("token.txt", 'r')}
         urlresponse = requests.get(url=url, params=params)
@@ -50,18 +54,82 @@ def main(page: ft.Page):
                 )
             )
         )
-        planningDate = ""
         def onDateChange(e):
-            planningDate1 = e.control.value.strftime('%Y, %m, %d, %H, %M')
-            planningDate = datetime.datetime(int(planningDate1))
-
-
-        def onsubmit(e):
+            year = e.control.value.strftime('%Y')
+            month = e.control.value.strftime('%m')
+            day = e.control.value.strftime('%d')
+            start_unix = time.mktime(datetime.datetime(int(year), int(month), int(day), 0, 0).timetuple())
+            end_unix = time.mktime(datetime.datetime(int(year), int(month), int(day), 23, 59).timetuple())
             page.clean()
             scheduleurl = "{}/v3/appointments/".format(school_url)
-            scheduleparams = {"access_token": open("token.txt", 'r'), "start": time.mktime(planningDate.timetuple())}
-            scheduleresponse = requests.get(url=scheduleurl, params=scheduleparams)
-            print(scheduleresponse.json())
+            scheduleparams = {"access_token": open("token.txt", 'r'), "start": int(start_unix), "end": int(end_unix),
+                              "user": "~me"}
+            schedule = requests.get(url=scheduleurl, params=scheduleparams)
+            scheduleresponse = schedule.json()["response"]
+            print(scheduleresponse)
+            scheduledata = scheduleresponse["data"]
+            userName = ft.Container(
+                content=ft.Text("Logged in as " + userjson[0]["firstName"]),
+                alignment=ft.alignment.center,
+                width=300,
+                height=50,
+                bgcolor=ft.colors.RED,
+                border_radius=ft.border_radius.all(5),
+            )
+
+            page.add(
+                ft.Row(
+                    [
+                        userName
+                    ],
+                    alignment=MainAxisAlignment.CENTER
+
+                )
+
+
+            )
+
+            for i in range(1, scheduleresponse["totalRows"] + 1):
+                containerName = ft.Container(
+                    content=ft.Text(str(scheduledata[-i]["teachers"]).replace('[','').replace(']','').replace('\'','').replace('\"','') + " - " + str(scheduledata[-i]["subjects"]).replace('[','').replace(']','').replace('\'','').replace('\"','') + " - " + str(scheduledata[-i]["locations"]).replace('[','').replace(']','').replace('\'','').replace('\"','') + " - " + str(scheduledata[-i]["startTimeSlotName"]).replace('[','').replace(']','').replace('\'','').replace('\"','')),
+                    alignment=ft.alignment.center,
+                    width=200,
+                    height=50,
+                    bgcolor=ft.colors.RED_ACCENT,
+                    border_radius=ft.border_radius.all(5),
+                )
+                page.add(
+                    ft.Row(
+                        [
+                            containerName
+                        ],
+                        alignment=MainAxisAlignment.CENTER
+                    )
+
+                )
+            planningDateButton2 = ft.ElevatedButton(
+                "Pick date:",
+                icon=ft.icons.CALENDAR_MONTH,
+                bgcolor=ft.colors.RED,
+                color=ft.colors.WHITE,
+                on_click=lambda e: page.open(
+                    ft.DatePicker(
+                        first_date=datetime.datetime(year=2023, month=10, day=1),
+                        last_date=datetime.datetime(year=2024, month=10, day=1),
+                        on_change=onDateChange,
+                    )
+                )
+            )
+            page.add(
+                ft.Row(
+                    [
+                        planningDateButton2
+                    ],
+                    alignment=MainAxisAlignment.CENTER
+                )
+            )
+
+
 
 
 
@@ -76,9 +144,7 @@ def main(page: ft.Page):
             ),
             ft.Row(
                 [
-                    ft.FilledButton("Fetch Data", icon="login", on_click=onsubmit, style=ft.ButtonStyle(
-                bgcolor=ft.colors.RED, color=ft.colors.WHITE,
-            ))
+
 
                 ],
                 alignment=MainAxisAlignment.CENTER
@@ -89,7 +155,9 @@ def main(page: ft.Page):
 
 
     else:
-        def on_login(e):
+
+        def on_login2(e):
+
             url = "{}/v3/oauth/token".format(school_url)
             data = {
             "grant_type": "authorization_code",
@@ -129,36 +197,128 @@ def main(page: ft.Page):
                 bgcolor=ft.colors.RED,
                 border_radius=ft.border_radius.all(5),
             )
+            planningDateButton = ft.ElevatedButton(
+                "Pick date:",
+                icon=ft.icons.CALENDAR_MONTH,
+                bgcolor=ft.colors.RED,
+                color=ft.colors.WHITE,
+                on_click=lambda e: page.open(
+                    ft.DatePicker(
+                        first_date=datetime.datetime(year=2023, month=10, day=1),
+                        last_date=datetime.datetime(year=2024, month=10, day=1),
+                        on_change=onDateChange,
+                    )
+                )
+            )
 
+            def onDateChange(e):
+                year = e.control.value.strftime('%Y')
+                month = e.control.value.strftime('%m')
+                day = e.control.value.strftime('%d')
+                start_unix = time.mktime(datetime.datetime(int(year), int(month), int(day), 0, 0).timetuple())
+                end_unix = time.mktime(datetime.datetime(int(year), int(month), int(day), 23, 59).timetuple())
+                page.clean()
+                scheduleurl = "{}/v3/appointments/".format(school_url)
+                scheduleparams = {"access_token": open("token.txt", 'r'), "start": int(start_unix),
+                                  "end": int(end_unix),
+                                  "user": "~me"}
+                schedule = requests.get(url=scheduleurl, params=scheduleparams)
+                scheduleresponse = schedule.json()["response"]
+                print(scheduleresponse)
+                scheduledata = scheduleresponse["data"]
+                userName = ft.Container(
+                    content=ft.Text("Logged in as " + userjson[0]["firstName"]),
+                    alignment=ft.alignment.center,
+                    width=300,
+                    height=50,
+                    bgcolor=ft.colors.RED,
+                    border_radius=ft.border_radius.all(5),
+                )
+
+                page.add(
+                    ft.Row(
+                        [
+                            userName
+                        ],
+                        alignment=MainAxisAlignment.CENTER
+
+                    )
+
+                )
+
+                for i in range(0, scheduleresponse["totalRows"]):
+                    containerName = ft.Container(
+                        content=ft.Text(str(scheduledata[-i]["teachers"]).replace('[','').replace(']','').replace('\'','').replace('\"','') + " - " + str(scheduledata[-i]["subjects"]).replace('[','').replace(']','').replace('\'','').replace('\"','') + " - " + str(scheduledata[-i]["locations"]).replace('[','').replace(']','').replace('\'','').replace('\"','') + " - " + str(scheduledata[-i]["startTimeSlotName"]).replace('[','').replace(']','').replace('\'','').replace('\"','')),
+                        alignment=ft.alignment.center,
+                        width=200,
+                        height=50,
+                        bgcolor=ft.colors.RED_ACCENT,
+                        border_radius=ft.border_radius.all(5),
+                    )
+                    page.add(
+                        ft.Row(
+                            [
+                                containerName
+                            ],
+                            alignment=MainAxisAlignment.CENTER
+                        )
+
+                    )
+                planningDateButton2 = ft.ElevatedButton(
+                    "Pick date:",
+                    icon=ft.icons.CALENDAR_MONTH,
+                    bgcolor=ft.colors.RED,
+                    color=ft.colors.WHITE,
+                    on_click=lambda e: page.open(
+                        ft.DatePicker(
+                            first_date=datetime.datetime(year=2023, month=10, day=1),
+                            last_date=datetime.datetime(year=2024, month=10, day=1),
+                            on_change=onDateChange,
+                        )
+                    )
+                )
+                page.add(
+                    ft.Row(
+                        [
+                            planningDateButton2
+                        ],
+                        alignment=MainAxisAlignment.CENTER
+                    )
+                )
 
             page.add(
                 ft.Row(
-                [
-                    userName,
-                    agendaInfo
-                ]
-            ))
+                    [
+                        userName,
+                        agendaInfo,
+                        planningDateButton
+                    ],
+                    alignment=MainAxisAlignment.CENTER
+                ),
+                ft.Row(
+                    [
 
-        logintext = ft.Container(
-            content=ft.Text("You only need to log in once, this app will store your token."),
-            alignment=ft.alignment.center,
-            width=300,
-            height=50,
-            bgcolor=ft.colors.RED,
-            border_radius=ft.border_radius.all(5),
-        )
+                    ],
+                    alignment=MainAxisAlignment.CENTER
+
+                )
+            )
 
 
+        loginbutton = ft.FilledButton("Log-In", icon="login", on_click=on_login2, style=ft.ButtonStyle(
+        bgcolor=ft.colors.RED
+        ))
         page.add(
             ft.Row(
-                [
-                    logintext,
-                    ft.Column(spacing=5, controls=(key, ft.FilledButton("Log-In", icon="login", on_click=on_login)))
-
+            [
+                    key,
+                    loginbutton
 
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
+
+
 
 ft.app(main)
